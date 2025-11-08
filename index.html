@@ -11,6 +11,9 @@
   </head>
 
   <body>
+    <!-- 🎶 Som celestial -->
+    <audio id="heaven-audio" src="./heaven.mp3" loop preload="auto"></audio>
+
     <div class="container">
       <div class="card">
         <h1>🙏 Jesus Virtual</h1>
@@ -20,14 +23,11 @@
           <img id="face" src="./jesus-avatar.png" alt="Jesus Virtual" />
         </div>
 
-        <button
-          id="mic-btn"
-          class="mic-btn"
-          aria-pressed="false"
-          aria-label="Iniciar chamada de voz"
-        >
-          🎤
-        </button>
+        <div id="message-box" class="message-box">
+          <p id="assistant-text">...</p>
+        </div>
+
+        <button id="mic-btn" class="mic-btn">🎤</button>
         <p id="status" class="status">Toque no microfone para conversar</p>
       </div>
     </div>

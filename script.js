@@ -1,52 +1,77 @@
 const micBtn = document.getElementById("mic-btn");
 const statusText = document.getElementById("status");
 const face = document.getElementById("face");
+const messageBox = document.getElementById("message-box");
+const assistantText = document.getElementById("assistant-text");
+const bgAudio = document.getElementById("heaven-audio");
 
-// cria botão devocional dinamicamente
+// 🔊 inicia som ambiente suave
+function startHeavenSound() {
+  bgAudio.volume = 0.3;
+  bgAudio
+    .play()
+    .catch(() =>
+      console.warn("Som ambiente aguardando interação do usuário.")
+    );
+}
+
+// 🔆 botão Modo Devocional
 const devotionalBtn = document.createElement("button");
 devotionalBtn.textContent = "📖 Modo Devocional";
-devotionalBtn.id = "devocional-btn";
-devotionalBtn.style.marginTop = "12px";
-devotionalBtn.style.background = "#e0c285";
-devotionalBtn.style.border = "none";
-devotionalBtn.style.padding = "12px 18px";
-devotionalBtn.style.borderRadius = "12px";
-devotionalBtn.style.fontSize = "16px";
-devotionalBtn.style.fontWeight = "600";
-devotionalBtn.style.color = "#3a2b00";
-devotionalBtn.style.boxShadow = "0 2px 5px rgba(0,0,0,0.1)";
-devotionalBtn.style.transition = "0.2s";
-devotionalBtn.style.width = "80%";
-devotionalBtn.style.maxWidth = "300px";
-devotionalBtn.style.cursor = "pointer";
-devotionalBtn.style.alignSelf = "center";
-
+Object.assign(devotionalBtn.style, {
+  marginTop: "12px",
+  background: "#e0c285",
+  border: "none",
+  padding: "12px 18px",
+  borderRadius: "12px",
+  fontSize: "16px",
+  fontWeight: "600",
+  color: "#3a2b00",
+  boxShadow: "0 2px 5px rgba(0,0,0,0.1)",
+  width: "80%",
+  maxWidth: "300px",
+  cursor: "pointer",
+  alignSelf: "center",
+  transition: "0.2s",
+});
 devotionalBtn.addEventListener("mouseenter", () => {
   devotionalBtn.style.filter = "brightness(1.1)";
 });
 devotionalBtn.addEventListener("mouseleave", () => {
   devotionalBtn.style.filter = "brightness(1)";
 });
-
 document.querySelector(".card").appendChild(devotionalBtn);
 
-let recognition = null;
-let listening = false;
-let speakingInterval = null;
+let voicePitch = 0.9;
+let voiceRate = 0.92;
 
-// reconhecimento de voz
-if ("webkitSpeechRecognition" in window || "SpeechRecognition" in window) {
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  recognition = new SR();
-  recognition.lang = "pt-BR";
-  recognition.interimResults = false;
-  recognition.maxAlternatives = 1;
-} else {
-  micBtn.disabled = true;
-  statusText.textContent = "Seu navegador não suporta reconhecimento de voz.";
+let elevenApiKey =
+  "76f3e2de8b4186c2a7809d391f42a9c923e50c4ba62e1b109a3937ed7b99a41f";
+let elevenVoiceId = "29vD33N1CtxCmqQRPOHJ";
+
+async function elevenSynthesize(text) {
+  const url = `https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(
+    elevenVoiceId
+  )}`;
+  const body = { text };
+
+  const resp = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "audio/mpeg",
+      "xi-api-key": elevenApiKey,
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!resp.ok) throw new Error("Erro ao conectar ElevenLabs");
+  const blob = await resp.blob();
+  return URL.createObjectURL(blob);
 }
 
-// animações simples (zoom leve e filtro de brilho)
+// ✨ lipsync
+let speakingInterval = null;
 function startLipsync() {
   clearInterval(speakingInterval);
   speakingInterval = setInterval(() => {
@@ -55,137 +80,116 @@ function startLipsync() {
     face.style.filter = `brightness(${0.95 + Math.random() * 0.1})`;
   }, 100);
 }
-
 function stopLipsync() {
   clearInterval(speakingInterval);
   face.style.transform = "";
   face.style.filter = "";
 }
 
-// fala com animação simples de “lipsync”
-function speak(text, opts = {}) {
-  if (!("speechSynthesis" in window)) {
-    if (opts.onend) opts.onend();
-    return;
+// 🕊️ fala e digitação sincronizados
+async function speak(text, opts = {}) {
+  assistantText.textContent = "";
+  messageBox.classList.add("visible", "typing");
+
+  const chars = text.split("");
+  let i = 0;
+  let finishedTyping = false;
+
+  // início do áudio logo no começo da digitação
+  const audioPromise = (async () => {
+    try {
+      const blobUrl = await elevenSynthesize(text);
+      const audio = new Audio(blobUrl);
+      audio.onplay = startLipsync;
+      audio.onended = () => {
+        stopLipsync();
+        if (opts.onend) opts.onend();
+      };
+      await audio.play();
+    } catch {
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = "pt-BR";
+      u.rate = voiceRate;
+      u.pitch = voicePitch;
+      u.onstart = startLipsync;
+      u.onend = () => {
+        stopLipsync();
+        if (opts.onend) opts.onend();
+      };
+      speechSynthesis.speak(u);
+    }
+  })();
+
+  // digitação suave enquanto fala
+  for (const ch of chars) {
+    assistantText.textContent += ch;
+    messageBox.scrollTo({ top: messageBox.scrollHeight, behavior: "smooth" });
+    await new Promise((r) => setTimeout(r, 20));
   }
 
-  const u = new SpeechSynthesisUtterance(text);
-  u.lang = "pt-BR";
-  u.rate = 0.95;
-  u.pitch = 1.0;
-
-  const voices = speechSynthesis.getVoices();
-  const best = voices.find((v) => v.lang === "pt-BR");
-  if (best) u.voice = best;
-
-  u.onstart = () => startLipsync();
-  u.onend = () => {
-    stopLipsync();
-    if (opts.onend) opts.onend();
-  };
-
-  speechSynthesis.cancel();
-  speechSynthesis.speak(u);
+  finishedTyping = true;
+  messageBox.classList.remove("typing");
+  await audioPromise;
 }
 
-// 🔹 Temas e versículos
-const bibleThemes = {
-  fé: { book: "hb", chapter: 11, verse: 1 },
-  amor: { book: "1jo", chapter: 4, verse: 19 },
-  medo: { book: "sl", chapter: 23, verse: 4 },
-  ansiedade: { book: "fp", chapter: 4, verse: 6 },
-  força: { book: "is", chapter: 40, verse: 31 },
-  tristeza: { book: "jo", chapter: 16, verse: 33 },
-  esperança: { book: "rm", chapter: 15, verse: 13 },
-  paz: { book: "jo", chapter: 14, verse: 27 },
-};
+// 🎙️ reconhecimento de voz
+let recognition = null;
+let listening = false;
 
-const localBibleFallback = {
-  fé: "Ora, a fé é o firme fundamento das coisas que se esperam, e a prova das coisas que se não veem. — Hebreus 11:1",
+if ("webkitSpeechRecognition" in window || "SpeechRecognition" in window) {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  recognition = new SR();
+  recognition.lang = "pt-BR";
+  recognition.interimResults = false;
+  recognition.maxAlternatives = 1;
+} else {
+  micBtn.disabled = true;
+  statusText.textContent = "Seu navegador não suporta voz.";
+}
+
+// 📖 temas e versículos
+const bibleThemes = {
+  fé: "Ora, a fé é o firme fundamento das coisas que se esperam. — Hebreus 11:1",
   amor: "Nós o amamos porque Ele nos amou primeiro. — 1 João 4:19",
-  medo: "Ainda que eu ande pelo vale da sombra da morte, não temerei mal algum, porque Tu estás comigo. — Salmos 23:4",
+  medo: "Ainda que eu ande pelo vale da sombra da morte, não temerei mal algum. — Salmos 23:4",
   ansiedade:
-    "Não estejais inquietos por coisa alguma; antes, as vossas petições sejam em tudo conhecidas diante de Deus. — Filipenses 4:6",
-  força:
-    "Mas os que esperam no Senhor renovarão as suas forças. — Isaías 40:31",
-  tristeza:
-    "No mundo tereis aflições, mas tende bom ânimo; eu venci o mundo. — João 16:33",
+    "Não andeis ansiosos por coisa alguma; antes, em tudo, sejam conhecidos os vossos pedidos diante de Deus. — Filipenses 4:6",
+  força: "Os que esperam no Senhor renovarão as suas forças. — Isaías 40:31",
+  tristeza: "No mundo tereis aflições, mas tende bom ânimo; eu venci o mundo. — João 16:33",
   esperança:
-    "O Deus da esperança vos encha de todo o gozo e paz. — Romanos 15:13",
+    "O Deus da esperança vos encha de todo gozo e paz em crença. — Romanos 15:13",
   paz: "Deixo-vos a paz, a minha paz vos dou. — João 14:27",
 };
 
-// 🔹 Busca versículo da API (com fallback)
-async function getBibleVerse(theme) {
-  const ref = bibleThemes[theme] || bibleThemes["fé"];
-  const url = `https://www.abibliadigital.com.br/api/verses/arc/${ref.book}/${ref.chapter}/${ref.verse}`;
-
-  try {
-    const response = await fetch(url);
-    if (!response.ok) throw new Error("Falha na API");
-    const data = await response.json();
-    if (data.text && data.book) {
-      return `${data.text.trim()} — ${data.book.name} ${data.chapter}:${
-        data.number
-      }`;
-    }
-  } catch (err) {
-    console.warn("API indisponível, usando versículo local:", err.message);
-  }
-
-  return localBibleFallback[theme];
+function getVerseByTheme(theme) {
+  return bibleThemes[theme] || bibleThemes["fé"];
 }
 
-// 🔹 Gera resposta de Jesus com base no tema
 async function generateResponse(text) {
   const t = text.toLowerCase();
   let theme = "fé";
-  if (t.includes("fé")) theme = "fé";
-  else if (t.includes("amor")) theme = "amor";
-  else if (t.includes("força")) theme = "força";
-  else if (t.includes("triste")) theme = "tristeza";
-  else if (t.includes("medo")) theme = "medo";
-  else if (t.includes("ansiedade")) theme = "ansiedade";
-  else if (t.includes("esperança")) theme = "esperança";
-  else if (t.includes("paz")) theme = "paz";
-
-  const verse = await getBibleVerse(theme);
+  for (const key of Object.keys(bibleThemes)) {
+    if (t.includes(key)) {
+      theme = key;
+      break;
+    }
+  }
+  const verse = getVerseByTheme(theme);
   return `Filho, medite sobre este versículo: ${verse}`;
 }
 
-// 🔹 Integração reconhecimento de voz
-if (recognition) {
-  recognition.onresult = async (evt) => {
-    const userText = evt.results[0][0].transcript;
-    const response = await generateResponse(userText);
-    statusText.textContent = "Jesus está respondendo...";
-    speak(response, {
-      onend: () => {
-        if (listening) {
-          statusText.textContent = "Jesus está te ouvindo...";
-          setTimeout(() => recognition.start(), 600);
-        } else {
-          statusText.textContent = "Toque no microfone para conversar";
-        }
-      },
-    });
-  };
-
-  recognition.onerror = (e) => {
-    console.warn(e);
-    statusText.textContent = "Não ouvi direito. Tente novamente.";
-  };
-}
-
-// 🔹 Botão microfone
+// 🎤 mic control
 micBtn.addEventListener("click", () => {
+  startHeavenSound();
+
   if (!recognition) return;
   if (!listening) {
     listening = true;
     micBtn.classList.add("listening");
     devotionalBtn.disabled = true;
     statusText.textContent = "Iniciando conversa...";
-    speak("Olá meu filho. Como você está hoje?", {
+
+    speak("Olá, meu filho. Como você está hoje?", {
       onend: () => {
         recognition.start();
         statusText.textContent = "Jesus está te ouvindo...";
@@ -196,22 +200,47 @@ micBtn.addEventListener("click", () => {
     micBtn.classList.remove("listening");
     devotionalBtn.disabled = false;
     recognition.stop();
-    speak("Que a paz esteja contigo. Estarei aqui quando quiser voltar.");
-    statusText.textContent = "Chamada encerrada";
+    speak("Que a paz esteja contigo, meu filho. Estarei aqui quando quiser voltar.");
+    statusText.textContent = "Chamada encerrada.";
   }
 });
 
-// 🔹 Botão devocional
+// 🕊️ reconhecimento → resposta
+if (recognition) {
+  recognition.onresult = async (evt) => {
+    const userText = evt.results[0][0].transcript;
+    const response = await generateResponse(userText);
+    statusText.textContent = "Jesus está respondendo...";
+    speak(response, {
+      onend: () => {
+        if (listening) {
+          statusText.textContent = "Jesus está te ouvindo...";
+          setTimeout(() => recognition.start(), 500);
+        } else {
+          statusText.textContent = "Toque no microfone para conversar";
+        }
+      },
+    });
+  };
+
+  recognition.onerror = () => {
+    statusText.textContent = "Não ouvi direito. Tente novamente.";
+  };
+}
+
+// 📖 Modo Devocional
 devotionalBtn.addEventListener("click", async () => {
+  startHeavenSound();
+
   micBtn.disabled = true;
   devotionalBtn.disabled = true;
   statusText.textContent = "Preparando devocional...";
 
   const themes = Object.keys(bibleThemes);
   const randomTheme = themes[Math.floor(Math.random() * themes.length)];
-  const verse = await getBibleVerse(randomTheme);
-
+  const verse = getVerseByTheme(randomTheme);
   const message = `Hoje vamos refletir sobre ${randomTheme}. ${verse}`;
+
   speak(message, {
     onend: () => {
       micBtn.disabled = false;
