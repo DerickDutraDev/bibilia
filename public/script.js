@@ -217,7 +217,7 @@ devotionalBtn.addEventListener("click", async () => {
   micBtn.disabled = true;
   devotionalBtn.disabled = true;
   statusText.textContent = "Preparando devocional...";
-  const res = await askJesus("Traga uma palavra devocional breve e inspiradora.");
+  const res = await askJesus("Traga uma palavra devocional curta e inspiradora.");
   await speak(res);
   micBtn.disabled = false;
   devotionalBtn.disabled = false;
