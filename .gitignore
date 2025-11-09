@@ -1,0 +1,25 @@
+# === Node.js ===
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+package-lock.json
+
+# === Ambiente ===
+.env
+.env.local
+.env.*.local
+
+# === Build / Distribuição ===
+dist/
+build/
+out/
+coverage/
+.vscode/
+
+
+
+
+
+
