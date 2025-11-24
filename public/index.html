@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Jesus Virtual</title>
+    <link rel="stylesheet" href="style.css" />
+    <link rel="icon" href="data:," />
+  </head>
+
+  <body>
+    <div class="container">
+      <div class="card">
+        <h1>🙏 Jesus Virtual</h1>
+        <p class="subtitle">Converse com Jesus em tempo real</p>
+
+        <div class="avatar-large">
+          <img id="face" src="./jesus-avatar.png" alt="Jesus Virtual" />
+        </div>
+
+        <!-- CHAT -->
+        <div class="chat-window" id="chat-window"></div>
+
+        <!-- INDICADOR DE DIGITAÇÃO -->
+        <div id="typing-indicator" class="typing hidden">
+          <img src="./jesus-avatar.png" class="typing-avatar" />
+          <div class="dots"><span></span><span></span><span></span></div>
+        </div>
+
+        <!-- INPUT DE TEXTO -->
+        <div class="text-input-area">
+          <input
+            type="text"
+            id="text-input"
+            placeholder="Digite sua mensagem…"
+          />
+          <button id="send-btn">Enviar</button>
+        </div>
+
+        <!-- MIC -->
+        <button id="mic-btn" class="mic-btn">🎤</button>
+        <p id="status" class="status">Toque no microfone para conversar</p>
+      </div>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>
