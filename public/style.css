@@ -73,10 +73,7 @@ body {
 /* CHAT WINDOW */
 .chat-window {
   width: 100%;
-
-  /* Altura 0 até o usuário começar a conversa */
-  height: 0;
-  max-height: 60vh;
+  flex: 1; /* Chat ocupa todo o espaço acima do input */
 
   overflow-y: auto;
   overflow-x: hidden;
@@ -99,9 +96,8 @@ body {
 
 /* ATIVO: abre o chat */
 .chat-window.active {
-  height: 45vh;
-  padding: 15px;
   opacity: 1;
+  padding: 15px;
   transform: translateY(0);
   pointer-events: auto;
 }
@@ -156,12 +152,23 @@ body {
   background: #dbeaff;
 }
 
+/* ----- INPUT FIXO NO RODAPÉ DO CARD ----- */
+.input-wrapper {
+  position: sticky;
+  bottom: 0;
+  width: 100%;
+  background: #fffdf7;
+  padding-top: 8px;
+  padding-bottom: 4px;
+  z-index: 10;
+}
+
 /* INPUT AREA */
 .text-input-area {
   display: flex;
   width: 100%;
   gap: 8px;
-  margin-top: 8px;
+  margin-bottom: 0;
   align-items: center;
   padding: 0 4px;
 }
@@ -283,7 +290,7 @@ body {
     height: 120px;
   }
   .chat-window.active {
-    height: 50vh;
+    max-height: 55vh;
   }
   #text-input {
     font-size: 14px;
